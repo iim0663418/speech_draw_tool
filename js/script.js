@@ -1,43 +1,93 @@
-let participants = [];
-let spokenOrder = [];
 
-function loadSpokenOrder() {
-  const stored = localStorage.getItem('spokenOrder');
+let rounds = []; // 全部輪次資料
+let currentRoundIdx = -1; // 當前輪次索引
+
+function getNowTs() {
+  const d = new Date();
+  return d.getFullYear().toString() +
+    String(d.getMonth() + 1).padStart(2, '0') +
+    String(d.getDate()).padStart(2, '0') +
+    String(d.getHours()).padStart(2, '0') +
+    String(d.getMinutes()).padStart(2, '0') +
+    String(d.getSeconds()).padStart(2, '0');
+}
+function nowISO() {
+  return new Date().toISOString();
+}
+
+function saveRounds() {
+  localStorage.setItem('rounds', JSON.stringify(rounds));
+}
+
+function loadRounds() {
+  const stored = localStorage.getItem('rounds');
   if (stored) {
     try {
-      spokenOrder = JSON.parse(stored);
+      rounds = JSON.parse(stored);
+      if (!Array.isArray(rounds)) rounds = [];
     } catch {
-      spokenOrder = [];
+      rounds = [];
     }
   }
 }
 
-function saveSpokenOrder() {
-  localStorage.setItem('spokenOrder', JSON.stringify(spokenOrder));
-}
-
-function updateParticipantCount() {
-  const list = document.getElementById('participants').value
+// 新增一輪
+function newRound() {
+  const input = document.getElementById('participants').value
     .split('\n').map(n => n.trim()).filter(n => n !== '');
-  participants = list;
-  document.getElementById('participantCount').textContent = '目前參與者 ' + participants.length + ' 人';
+  if (input.length === 0) {
+    alert('請先輸入完整參與者清單');
+    return;
+  }
+  const newOne = {
+    roundId: getNowTs(),
+    createdAt: nowISO(),
+    participantsInit: [...input],
+    participantsCurrent: [...input],
+    spokenOrder: [],
+    note: ''
+  };
+  rounds.push(newOne);
+  currentRoundIdx = rounds.length - 1;
+  saveRounds();
+  refreshUI();
 }
 
-// 只顯示最後六名，若人數不足則全部顯示
+// 當前輪次快取
+function getCurrentRound() {
+  if (currentRoundIdx < 0 || currentRoundIdx >= rounds.length) return null;
+  return rounds[currentRoundIdx];
+}
+
+// 刷新參與者人數顯示
+function updateParticipantCount() {
+  const r = getCurrentRound();
+  if (!r) {
+    document.getElementById('participantCount').textContent = '目前參與者 0 人';
+    return;
+  }
+  document.getElementById('participantCount').textContent =
+    '目前參與者 ' + r.participantsCurrent.length + ' 人';
+  document.getElementById('participants').value = r.participantsCurrent.join('\n');
+}
+
+// 渲染已發言順序（最多6名）
 function renderSpokenList(limit = 6) {
   const ul = document.getElementById('spokenList');
   ul.innerHTML = '';
-  const startIdx = Math.max(0, spokenOrder.length - limit);
-  spokenOrder.slice(startIdx).forEach((name, idx) => {
+  const r = getCurrentRound();
+  if (!r) return;
+  const startIdx = Math.max(0, r.spokenOrder.length - limit);
+  r.spokenOrder.slice(startIdx).forEach((name, idx) => {
     const li = document.createElement('li');
     li.className = 'list-group-item';
     li.textContent = (startIdx + idx + 1) + '. ' + name;
     ul.appendChild(li);
   });
-  // 自動滾動到最新發言人
   ul.scrollTop = ul.scrollHeight;
 }
 
+// 倒數動畫
 async function showCountdownAnimation() {
   return new Promise(async resolve => {
     const overlay = document.getElementById('overlay');
@@ -62,26 +112,33 @@ async function showCountdownAnimation() {
   });
 }
 
+// 抽取發言人
 async function selectSpeaker() {
   const btn = document.getElementById('drawBtn');
   btn.disabled = true;
   btn.textContent = '抽取中…';
 
-  if (participants.length === 0) {
-    alert('所有人已發言完畢或請先輸入參與者');
+  const r = getCurrentRound();
+  if (!r) {
+    alert('請先建立新一輪');
+    btn.disabled = false;
+    btn.textContent = '抽取發言者';
+    return;
+  }
+  if (r.participantsCurrent.length === 0) {
+    alert('所有人已發言完畢');
     btn.disabled = false;
     btn.textContent = '抽取發言者';
     return;
   }
   await showCountdownAnimation();
-
-  const idx = Math.floor(Math.random() * participants.length);
-  const chosen = participants.splice(idx, 1)[0];
-  document.getElementById('participants').value = participants.join('\n');
+  const idx = Math.floor(Math.random() * r.participantsCurrent.length);
+  const chosen = r.participantsCurrent.splice(idx, 1)[0];
+  r.spokenOrder.push(chosen);
+  saveRounds();
   updateParticipantCount();
 
   const wrapper = document.getElementById('currentSpeakerWrapper');
-  // 動畫結束立即顯示發言人與新提示文字
   wrapper.innerHTML = `
     <div class="selected-speaker-wrapper">
       <h2 class="selected-speaker">🎤 ${chosen}</h2>
@@ -94,37 +151,81 @@ async function selectSpeaker() {
     speakerElem.classList.remove('glow-animation');
   }, { once: true });
 
-  spokenOrder.push(chosen);
-  saveSpokenOrder();
   renderSpokenList();
-
   setTimeout(() => {
     btn.disabled = false;
     btn.textContent = '抽取發言者';
   }, 2000);
 }
 
+// 重置目前輪
 function resetAll() {
-  if (confirm('確定要重置所有資料？')) {
-    participants = [];
-    spokenOrder = [];
-    document.getElementById('participants').value = '';
-    document.getElementById('currentSpeakerWrapper').innerHTML = '';
+  if (currentRoundIdx < 0) return;
+  if (confirm('確定要重置目前這一輪？')) {
+    const r = getCurrentRound();
+    if (!r) return;
+    r.participantsCurrent = [...r.participantsInit];
+    r.spokenOrder = [];
+    saveRounds();
     updateParticipantCount();
-    localStorage.removeItem('spokenOrder');
     renderSpokenList();
+    document.getElementById('currentSpeakerWrapper').innerHTML = '';
     resetToast.show();
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  loadSpokenOrder();
-  renderSpokenList();
-  updateParticipantCount();
+// 畫面刷新（切換輪、建立新輪等）
+function refreshUI() {
+  // 輪次下拉
+  const select = document.getElementById('roundSelect');
+  select.innerHTML = '';
+  rounds.forEach((r, i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = `第${i+1}輪 (${r.roundId})`;
+    select.appendChild(opt);
+  });
+  if (currentRoundIdx < 0 && rounds.length > 0) currentRoundIdx = rounds.length - 1;
+  if (currentRoundIdx >= 0 && select.options.length > 0)
+    select.value = currentRoundIdx;
 
-  document.getElementById('participants').addEventListener('input', updateParticipantCount);
+  // 顯示輪次時間
+  const meta = document.getElementById('roundMeta');
+  if (currentRoundIdx >= 0) {
+    const r = getCurrentRound();
+    meta.textContent = '建立時間：' + (r.createdAt ? r.createdAt.replace('T',' ').slice(0,19) : '');
+  } else {
+    meta.textContent = '';
+  }
+
+  updateParticipantCount();
+  renderSpokenList();
+  document.getElementById('currentSpeakerWrapper').innerHTML = '';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadRounds();
+  refreshUI();
+
+  document.getElementById('participants').addEventListener('input', () => {
+    const val = document.getElementById('participants').value
+      .split('\n').map(n => n.trim()).filter(n => n !== '');
+    // 動態同步目前參與者（只針對尚未抽出前才生效）
+    const r = getCurrentRound();
+    if (r && r.spokenOrder.length === 0) {
+      r.participantsInit = [...val];
+      r.participantsCurrent = [...val];
+      saveRounds();
+      updateParticipantCount();
+    }
+  });
   document.getElementById('drawBtn').addEventListener('click', selectSpeaker);
   document.getElementById('resetBtn').addEventListener('click', resetAll);
+  document.getElementById('newRoundBtn').addEventListener('click', newRound);
+  document.getElementById('roundSelect').addEventListener('change', e => {
+    currentRoundIdx = parseInt(e.target.value);
+    refreshUI();
+  });
 
   // 初始化 Toast
   window.resetToast = new bootstrap.Toast(document.getElementById('resetToast'), { delay: 2000 });
