@@ -23,15 +23,19 @@ function updateParticipantCount() {
   document.getElementById('participantCount').textContent = '目前參與者 ' + participants.length + ' 人';
 }
 
-function renderSpokenList() {
+// 只顯示最後六名，若人數不足則全部顯示
+function renderSpokenList(limit = 6) {
   const ul = document.getElementById('spokenList');
   ul.innerHTML = '';
-  spokenOrder.forEach((name, index) => {
+  const startIdx = Math.max(0, spokenOrder.length - limit);
+  spokenOrder.slice(startIdx).forEach((name, idx) => {
     const li = document.createElement('li');
     li.className = 'list-group-item';
-    li.textContent = (index + 1) + '. ' + name;
+    li.textContent = (startIdx + idx + 1) + '. ' + name;
     ul.appendChild(li);
   });
+  // 自動滾動到最新發言人
+  ul.scrollTop = ul.scrollHeight;
 }
 
 async function showCountdownAnimation() {
@@ -61,7 +65,7 @@ async function showCountdownAnimation() {
 async function selectSpeaker() {
   const btn = document.getElementById('drawBtn');
   btn.disabled = true;
-  btn.textContent = '抽取中…'; 
+  btn.textContent = '抽取中…';
 
   if (participants.length === 0) {
     alert('所有人已發言完畢或請先輸入參與者');
@@ -77,10 +81,11 @@ async function selectSpeaker() {
   updateParticipantCount();
 
   const wrapper = document.getElementById('currentSpeakerWrapper');
+  // 動畫結束立即顯示發言人與新提示文字
   wrapper.innerHTML = `
     <div class="selected-speaker-wrapper">
       <h2 class="selected-speaker">🎤 ${chosen}</h2>
-      <p class="speaker-note">下一位發言者請準備...</p>
+      <p class="speaker-note">請發言人準備發言</p>
     </div>
   `;
   const speakerElem = document.querySelector('.selected-speaker');

@@ -128,7 +128,7 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* 已發言順序收合 */
+/* 已發言順序收合，強制固定高度與滾動條 */
 #spokenContainer {
   max-height: 300px;
   overflow-y: auto;
