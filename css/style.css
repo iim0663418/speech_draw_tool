@@ -1,0 +1,185 @@
+body {
+  background-color: #f8f9fa;
+}
+
+/* 按鈕呼吸動畫（改為藍色陰影） */
+@keyframes pulseShadow {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 5px rgba(13, 110, 253, 0.5), 0 0 10px rgba(13, 110, 253, 0.5);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(13, 110, 253, 0.8), 0 0 30px rgba(13, 110, 253, 0.8);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 5px rgba(13, 110, 253, 0.5), 0 0 10px rgba(13, 110, 253, 0.5);
+  }
+}
+#drawBtn {
+  animation: pulseShadow 2s ease-in-out infinite;
+}
+#drawBtn:hover,
+#drawBtn:focus {
+  animation-play-state: paused;
+}
+
+/* 倒數動畫 */
+@keyframes countdownFade {
+  0% { opacity: 0; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+  100% { opacity: 0; transform: scale(0.8); }
+}
+.countdown-number {
+  font-size: 4rem;
+  color: #fff;
+  animation: countdownFade 1s ease-in-out;
+  position: relative;
+  z-index: 2;
+  margin-bottom: 1rem;
+}
+
+/* 遮罩＆模糊 */
+.overlay {
+  display: none !important;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+.overlay.show {
+  display: flex !important;
+}
+.overlay.fade-out {
+  animation: overlayFade 1s forwards;
+}
+.blur-bg {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  z-index: 1;
+}
+@keyframes overlayFade {
+  0% {
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+  }
+  100% {
+    background: rgba(0, 0, 0, 0);
+    backdrop-filter: blur(0px);
+  }
+}
+
+/* 螢光邊框動畫 */
+@keyframes glowBorder {
+  0% {
+    box-shadow: 0 0 5px rgba(13, 110, 253, 0.5), 0 0 10px rgba(13, 110, 253, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(13, 110, 253, 1), 0 0 30px rgba(13, 110, 253, 1);
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(13, 110, 253, 0.5), 0 0 10px rgba(13, 110, 253, 0.5);
+  }
+}
+.glow-animation {
+  animation: glowBorder 1.5s ease-in-out;
+}
+
+/* 發言者卡片＆提示文字 */
+.selected-speaker-wrapper {
+  position: relative;
+  display: inline-block;
+  margin-top: 1rem;
+  text-align: center;
+  z-index: 3;
+}
+.selected-speaker {
+  font-size: 3rem;
+  font-weight: bold;
+  color: #0d6efd;
+  background: #e7f1ff;
+  padding: 1rem 2rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 0 5px rgba(13, 110, 253, 0.5), 0 0 10px rgba(13, 110, 253, 0.5);
+  animation: popIn 0.8s ease-in-out;
+}
+@keyframes popIn {
+  0% { opacity: 0; transform: scale(0.5) rotate(-10deg); }
+  60% { opacity: 1; transform: scale(1.2) rotate(5deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+.speaker-note {
+  margin-top: 0.5rem;
+  font-size: 1.25rem;
+  color: #6c757d;
+  animation: fadeInNote 0.8s ease-in-out;
+}
+@keyframes fadeInNote {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 已發言順序收合 */
+#spokenContainer {
+  max-height: 300px;
+  overflow-y: auto;
+  transition: max-height 0.3s ease;
+}
+#spokenContainer.collapse {
+  max-height: 0;
+  overflow: hidden;
+}
+#spokenContainer.collapse.show {
+  max-height: 300px;
+}
+#spokenList li {
+  margin-bottom: 0.5rem;
+}
+.fadeInList li {
+  opacity: 0;
+  animation: fadeIn 0.5s ease-in-out forwards;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Toast 位置 */
+.toast-container {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  padding: 1rem;
+  z-index: 1100;
+}
+
+/* RWD for iPad */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .selected-speaker {
+    font-size: 2.5rem;
+  }
+  #participants {
+    font-size: 1.1rem;
+  }
+  #drawBtn {
+    width: 80%;
+  }
+}
+@media (max-width: 575.98px) {
+  .d-flex.justify-content-between {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .d-flex.justify-content-between button {
+    margin-top: 0.5rem;
+  }
+}
